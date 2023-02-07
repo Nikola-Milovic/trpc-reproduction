@@ -1,0 +1,34 @@
+{
+    "extends": "tsconfig/nextjs.json",
+    "compilerOptions": {
+        "allowJs": true,
+        "lib": [
+            "dom",
+            "dom.iterable",
+            "esnext"
+        ],
+        "outDir": "dist",
+        "module": "esnext",
+        "incremental": true,
+        "noUnusedLocals": false,
+        "paths": {
+            "@/types": [
+                "./src/lib/types/index.ts"
+            ],
+            "@/trpc": [
+                "./src/lib/APIProvider.ts"
+            ],
+            "@/*": [
+                "./src/*"
+            ]
+        }
+    },
+    "include": [
+        "next-env.d.ts",
+        "**/*.ts",
+        "**/*.tsx"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
