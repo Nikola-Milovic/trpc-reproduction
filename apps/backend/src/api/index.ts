@@ -5,18 +5,16 @@ import { trpc } from './trpc'
 import { TRPCError } from "@trpc/server";
 
 const appRouter = trpc.router({
-    hello: trpc.procedure.input(z.string().nullish()).query(({ input, ctx }) => {
-        console.log("received, %v", input)
+    hello: trpc.procedure.query(() => {
         throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: `failed to hello`,
-            cause: Error("failed to hello"),
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An unexpected error occurred, please try again later.',
         });
     }),
 });
 
 
-export default (app) => {
+export default (app: any) => {
     app.use(
         "/trpc",
         trpcExpress.createExpressMiddleware({
