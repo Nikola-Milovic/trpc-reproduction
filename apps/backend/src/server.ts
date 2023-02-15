@@ -1,84 +1,6 @@
-import { TRPCError, inferAsyncReturnType } from '@trpc/server';
-import * as trpcExpress from '@trpc/server/adapters/express';
-import { EventEmitter } from 'events';
 import express from 'express';
-import { z } from 'zod';
-import { publicProcedure, trpc, router, createContext } from "./api"
-// --------- create procedures etc
-
-let id = 0;
-
-const ee = new EventEmitter();
-const db = {
-    posts: [
-        {
-            id: ++id,
-            title: 'hello',
-        },
-    ],
-    messages: [createMessage('initial message')],
-};
-function createMessage(text: string) {
-    const msg = {
-        id: ++id,
-        text,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-    };
-    ee.emit('newMessage', msg);
-    return msg;
-}
-
-const postRouter = router({
-    createPost: trpc.procedure
-        .input(z.object({ title: z.string() }))
-        .mutation(({ input }) => {
-            const post = {
-                id: ++id,
-                ...input,
-            };
-            db.posts.push(post);
-            return post;
-        }),
-    listPosts: publicProcedure.query(() => db.posts),
-});
-
-const messageRouter = router({
-    addMessage: publicProcedure.input(z.string()).mutation(({ input }) => {
-        const msg = createMessage(input);
-        db.messages.push(msg);
-
-        return msg;
-    }),
-    listMessages: publicProcedure.query(() => db.messages),
-});
-
-// root router to call
-const appRouter = router({
-    // merge predefined routers
-    post: postRouter,
-    message: messageRouter,
-    // or individual procedures
-    hello: publicProcedure.input(z.string().nullish()).query(({ input, ctx }) => {
-        return `hello ${input ?? ctx.user?.name ?? 'world'}`;
-    }),
-    // or inline a router
-    admin: router({
-        secret: publicProcedure.query(({ ctx }) => {
-            if (!ctx.user) {
-                throw new TRPCError({ code: 'UNAUTHORIZED' });
-            }
-            if (ctx.user?.name !== 'alex') {
-                throw new TRPCError({ code: 'FORBIDDEN' });
-            }
-            return {
-                secret: 'sauce',
-            };
-        }),
-    }),
-});
-
-export type AppRouter = typeof appRouter;
+import cors from "cors";
+import api from "@/api"
 
 async function main() {
     // express implementation
@@ -91,14 +13,11 @@ async function main() {
         next();
     });
 
-    app.use(
-        '/trpc',
-        trpcExpress.createExpressMiddleware({
-            router: appRouter,
-            createContext,
-        }),
-    );
-    app.get('/', (_req, res) => res.send('hello'));
+    app.use(cors())
+
+    api(app)
+
+    /* app.get('/', (_req, res) => res.send('hello')); */
     app.listen(3000, () => {
         console.log('listening on port 3000');
     });

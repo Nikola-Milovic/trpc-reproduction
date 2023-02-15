@@ -1,28 +1,29 @@
-import { TRPCError, inferAsyncReturnType, initTRPC } from '@trpc/server';
+import z from "zod";
 import * as trpcExpress from '@trpc/server/adapters/express';
+import { sessionContext } from './context'
+import { trpc } from './trpc'
+import { TRPCError } from "@trpc/server";
 
-export const createContext = ({
-  req,
-  res,
-}: trpcExpress.CreateExpressContextOptions) => {
-  const getUser = () => {
-    if (req.headers.authorization !== 'secret') {
-      return null;
-    }
-    return {
-      name: 'alex',
-    };
-  };
+const appRouter = trpc.router({
+    hello: trpc.procedure.input(z.string().nullish()).query(({ input, ctx }) => {
+        console.log("received, %v", input)
+        throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `failed to hello`,
+            cause: Error("failed to hello"),
+        });
+    }),
+});
 
-  return {
-    req,
-    res,
-    user: getUser(),
-  };
+
+export default (app) => {
+    app.use(
+        "/trpc",
+        trpcExpress.createExpressMiddleware({
+            router: appRouter,
+            createContext: sessionContext,
+        })
+    );
 };
-type Context = inferAsyncReturnType<typeof createContext>;
 
-export const trpc = initTRPC.context<Context>().create();
-
-export const router = trpc.router;
-export const publicProcedure = trpc.procedure;
+export type AppRouter = typeof appRouter;
